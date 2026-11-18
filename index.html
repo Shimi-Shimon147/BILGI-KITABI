@@ -113,12 +113,21 @@ input[type=text],input[type=tel],input[type=date]{padding:10px}
 .step button.openpick{width:auto;height:43px;border-radius:22px;padding:0 16px;font-size:1.05rem;line-height:1}
 .stepnote{font-size:1.15rem;line-height:1.6;font-weight:600;text-align:center;margin:8px 0}
 input.bad{border-color:var(--warn);border-width:2px}
+.feast{border:3px solid var(--gold);background:var(--card);border-radius:16px;padding:12px 14px;margin:0 0 12px;line-height:1.7;font-size:1.05rem;box-shadow:0 0 16px rgba(255,198,26,.35)}
+.feast-t{font-weight:800;color:var(--accent);font-size:1.15rem;margin-bottom:2px}
+.feast-now{background:var(--gold);color:var(--gold-t);font-weight:800;border-radius:10px;padding:8px 10px;margin-top:8px;text-align:center}
 </style>
 </head>
 <body>
 
 <div class="wrap" id="s1">
   <div class="top"><h1>הזמנת חומרים</h1><div class="logo" role="img" aria-label="ספר הידע"></div></div>
+  <div class="feast">
+    <div class="feast-t">שימו לב: מועד ההזמנה</div>
+    <div>הזמנות <b>עד ה־14 בחודש</b>: לארוחת האהבה הקרובה.</div>
+    <div>הזמנות <b>מה־15 בחודש ואילך</b>: לארוחת האהבה של החודש הבא.</div>
+    <div class="feast-now" id="feastnow"></div>
+  </div>
   <div class="card">
     <label for="date">תאריך ההזמנה</label>
     <input type="date" id="date">
@@ -153,6 +162,7 @@ input.bad{border-color:var(--warn);border-width:2px}
     <b>סיכום ההזמנה</b>
     <pre id="txt"></pre>
     <div class="big" id="bigtotal"></div>
+    <div class="feast-now" id="feastnow2"></div>
   </div>
 
   <h2>פרטי חשבון להעברה</h2>
@@ -186,6 +196,7 @@ input.bad{border-color:var(--warn);border-width:2px}
   <div class="card done">
     <div class="kv"><span>מספר הזמנה</span><b id="o_id"></b></div>
     <div class="kv"><span>תאריך</span><b id="o_date"></b></div>
+    <div class="kv"><span>ארוחת האהבה</span><b id="o_feast"></b></div>
     <div class="kv"><span>שם</span><b id="o_name"></b></div>
     <div class="kv"><span>מועצה</span><b id="o_council"></b></div>
     <div class="kv"><span>אסמכתא</span><b id="o_ref"></b></div>
@@ -329,6 +340,7 @@ $("next").onclick=function(){
   if(sum()===0){err.textContent="לא נבחרו פריטים.";return}
   $("txt").textContent = orderLines().join("\n");
   $("bigtotal").textContent = "סה״כ לתשלום: "+fmt(sum())+" ₪";
+  $("feastnow2").textContent = "ההזמנה שלכם תגיע ב"+feastLabel();
   show(2);
   refresh();
 };
@@ -356,7 +368,7 @@ function makeId(){
 }
 
 function waMessage(o){
-  var L=["📦 *הזמנת חומרים חדשה*","","*מספר הזמנה:* "+o.orderId,"*תאריך:* "+o.date,"",
+  var L=["📦 *הזמנת חומרים חדשה*","","*מספר הזמנה:* "+o.orderId,"*תאריך:* "+o.date,"*ארוחת האהבה:* "+o.feast.replace(/^ארוחת האהבה /,""),"",
     "*המזמין:*","שם: "+o.name,"מועצה: "+o.council,"טלפון: "+o.phone,"","──────────","*מה להזמין:*",""];
   main.forEach(function(m){ if(qty[m.id]>0) L.push("▪ "+m.n+": *"+qty[m.id]+"*"); });
   var t=triples.filter(function(x){return qty[x.id]>0});
@@ -380,6 +392,16 @@ function nameOk(){
   return L(parts[0])>=2 && parts.slice(1).every(function(t){return L(t)>=1});
 }
 $("name").oninput=function(){$("errname").textContent="";$("name").classList.remove("bad")};
+var MONTHS=["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+function feastLabel(){
+  var v=$("date").value, t=v?new Date(v+"T12:00:00"):new Date();
+  if(isNaN(t)) t=new Date();
+  if(t.getDate()<=14) return "ארוחת האהבה הקרובה";
+  return "ארוחת האהבה של החודש הבא ("+MONTHS[(t.getMonth()+1)%12]+")";
+}
+function refreshFeast(){ $("feastnow").textContent="ההזמנה שלכם תגיע ב"+feastLabel(); }
+$("date").oninput=$("date").onchange=refreshFeast;
+refreshFeast();
 function cleanPhone(){return $("phone").value.replace(/[\s\-().]/g,"")}
 $("phone").oninput=function(){$("errphone").textContent="";$("phone").classList.remove("bad")};
 var sending=false;
@@ -389,7 +411,7 @@ $("send2").onclick=function(){
   sending=true;
   var btn=$("send2"); btn.disabled=true; btn.textContent="שולח...";
   var payload={
-    orderId:makeId(), date:dateStr(),
+    orderId:makeId(), date:dateStr(), feast:feastLabel(),
     name:cleanName(), council:$("council").value.trim(), phone:cleanPhone(),
     booklets:selList().join(", ")+($("nums").value.trim()?" | הערה: "+$("nums").value.trim():""),
     ref:$("ref").value.trim(), total:Math.round(sum()*100)/100,
@@ -399,7 +421,7 @@ $("send2").onclick=function(){
   };
   var url="https://wa.me/"+WA_PHONE+"?text="+encodeURIComponent(waMessage(payload));
   $("wa2").href=url;
-  $("o_id").textContent=payload.orderId; $("o_date").textContent=payload.date;
+  $("o_id").textContent=payload.orderId; $("o_date").textContent=payload.date; $("o_feast").textContent=payload.feast.replace(/^ארוחת האהבה /,"");
   $("o_name").textContent=payload.name; $("o_council").textContent=payload.council;
   $("o_ref").textContent=payload.ref;
   $("o_items").textContent=orderLines().join("\n");
