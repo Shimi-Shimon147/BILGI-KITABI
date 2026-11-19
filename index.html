@@ -116,6 +116,12 @@ input.bad{border-color:var(--warn);border-width:2px}
 .feast{border:3px solid var(--gold);background:var(--card);border-radius:16px;padding:12px 14px;margin:0 0 12px;line-height:1.7;font-size:1.05rem;box-shadow:0 0 16px rgba(255,198,26,.35)}
 .feast-t{font-weight:800;color:var(--accent);font-size:1.15rem;margin-bottom:2px}
 .feast-now{background:var(--gold);color:var(--gold-t);font-weight:800;border-radius:10px;padding:8px 10px;margin-top:8px;text-align:center}
+.notecard textarea{width:100%;font:inherit;font-size:1.05rem;padding:10px;margin:6px 0;border:2px solid var(--line);border-radius:12px;background:var(--bg);color:var(--text)}
+.notecard label{line-height:1.5}
+.notecard .btns{margin-top:6px}
+#askwa{background:linear-gradient(135deg,#25b85f,#0f8a47);color:#fff;box-shadow:0 0 16px rgba(37,211,102,.6);text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.b0card{margin-top:14px}
+#b0card .row{border-bottom:0}
 </style>
 </head>
 <body>
@@ -150,6 +156,13 @@ input.bad{border-color:var(--warn);border-width:2px}
   <div class="card tricard" id="triples"></div>
   <h2 class="sub">חוברות בודדות</h2>
   <div class="card" id="pairs"></div>
+  <div class="card b0card" id="b0card"></div>
+  <h2 class="sub">הערות</h2>
+  <div class="card notecard">
+    <label for="notes">הזמנה מיוחדת שלא מופיעה בטופס? כתבו אותה כאן בהערות, ופנו לשרה לשאול.</label>
+    <textarea id="notes" rows="3" placeholder="לדוגמה: אני צריכה משהו שלא מופיע ברשימה"></textarea>
+    <div class="btns"><a id="askwa" target="_blank" rel="noopener">💬 פנייה לשרה בוואטסאפ</a></div>
+  </div>
   <div class="err" id="err1"></div>
 </div>
 
@@ -218,7 +231,7 @@ var main = [
   {id:"set", n:"סט שלם (62 חוברות)", p:200},
   {id:"file", n:"קובץ תקנות", p:70}
 ];
-var langs = ["חוברת יחידה מסט","חוברת הפצה עברית","חוברת הפצה ערבית","חוברת הפצה אנגלית","חוברת הפצה רוסית","חוברת הפצה תורכית","חוברת הפצה ספרדית","חוברת הפצה צרפתית","חוברת הפצה גרמנית","חוברת הפצה הולנדית","חוברת הפצה יפנית"];
+var langs = ["חוברת בודדה מתוך סט 62","חוברת הפצה מס' 1 עברית","חוברת הפצה מס' 1 ערבית","חוברת הפצה מס' 1 אנגלית","חוברת הפצה מס' 1 רוסית","חוברת הפצה מס' 1 תורכית","חוברת הפצה מס' 1 ספרדית","חוברת הפצה מס' 1 צרפתית","חוברת הפצה מס' 1 גרמנית","חוברת הפצה מס' 1 הולנדית","חוברת הפצה מס' 1 יפנית"];
 var tlangs = ["עברית","ערבית","אנגלית","רוסית","תורכית","ספרדית","צרפתית","גרמנית","הולנדית","יפנית"];
 var triples = tlangs.map(function(l,i){return {id:"t"+i, n:l, full:"סט משולש (1, 20, 25) ב"+l, p:10.8, tri:true}});
 var pairs = langs.map(function(l,i){return {id:"b"+i, n:l, p:3.6}});
@@ -297,7 +310,8 @@ function build(box, list){
 build($("main"), main);
 
 build($("triples"), triples);
-build($("pairs"), pairs);
+build($("pairs"), pairs.filter(function(x){return x.id!=="b0"}));
+build($("b0card"), pairs.filter(function(x){return x.id==="b0"}));
 
 
 function sum(){return items.reduce(function(t,x){return t+qty[x.id]*x.p},0)}
@@ -315,6 +329,7 @@ function orderLines(){
       if(x.id==="b0"){ lines.push("   נבחרו: "+selList().join(", ")); var nt=$("nums").value.trim(); if(nt) lines.push("   הערה: "+nt); }
     }
   });
+  var nn=$("notes").value.trim(); if(nn) lines.push("הערות: "+nn);
   return lines;
 }
 
@@ -374,11 +389,12 @@ function waMessage(o){
   var t=triples.filter(function(x){return qty[x.id]>0});
   if(t.length){ L.push("","🔺 *סטים משולשים:*"); t.forEach(function(x){L.push("▪ "+x.n+": *"+qty[x.id]+"*")}); }
   if(qty.b0>0){
-    L.push("","📖 *חוברות בודדות מסט:*","▪ "+selList().join(", ")+" (*"+qty.b0+"*)");
+    L.push("","📖 *חוברת בודדה מתוך סט 62:*","▪ "+selList().join(", ")+" (*"+qty.b0+"*)");
     var nt=$("nums").value.trim(); if(nt) L.push("הערה: "+nt);
   }
   var d=pairs.filter(function(x){return x.id!=="b0" && qty[x.id]>0});
-  if(d.length){ L.push("","📕 *חוברות הפצה:*"); d.forEach(function(x){L.push("▪ "+x.n.replace("חוברת הפצה ","")+": *"+qty[x.id]+"*")}); }
+  if(d.length){ L.push("","📕 *חוברות הפצה:*"); d.forEach(function(x){L.push("▪ "+x.n+": *"+qty[x.id]+"*")}); }
+  var nn=$("notes").value.trim(); if(nn) L.push("","📝 *הערות:*",nn);
   L.push("","──────────","*סה״כ לתשלום: "+fmt(o.total)+" ₪*","*שולם בהעברה בנקאית*","*מספר אסמכתא:* "+o.ref);
   return L.join("\n");
 }
@@ -402,6 +418,16 @@ function feastLabel(){
 function refreshFeast(){ $("feastnow").textContent="ההזמנה שלכם תגיע ב"+feastLabel(); }
 $("date").oninput=$("date").onchange=refreshFeast;
 refreshFeast();
+function askLink(){
+  var n=cleanName(), c=$("council").value.trim(), nt=$("notes").value.trim();
+  var t="שלום שרה, ";
+  if(n) t+="אני "+n+(c?" ממועצה "+c:"")+". ";
+  t+="יש לי שאלה לגבי הזמנה מיוחדת"+(nt?": "+nt:".");
+  return "https://wa.me/"+WA_PHONE+"?text="+encodeURIComponent(t);
+}
+function refreshAsk(){ $("askwa").href=askLink(); }
+["notes","name","council"].forEach(function(id){ $(id).addEventListener("input",refreshAsk); });
+refreshAsk();
 function cleanPhone(){return $("phone").value.replace(/[\s\-().]/g,"")}
 $("phone").oninput=function(){$("errphone").textContent="";$("phone").classList.remove("bad")};
 var sending=false;
@@ -414,7 +440,7 @@ $("send2").onclick=function(){
     orderId:makeId(), date:dateStr(), feast:feastLabel(),
     name:cleanName(), council:$("council").value.trim(), phone:cleanPhone(),
     booklets:selList().join(", ")+($("nums").value.trim()?" | הערה: "+$("nums").value.trim():""),
-    ref:$("ref").value.trim(), total:Math.round(sum()*100)/100,
+    notes:$("notes").value.trim(), ref:$("ref").value.trim(), total:Math.round(sum()*100)/100,
     items:items.filter(function(x){return qty[x.id]>0}).map(function(x){
       return {name:(x.full||x.n), qty:qty[x.id], price:x.p, sum:Math.round(qty[x.id]*x.p*100)/100};
     })
